@@ -1,0 +1,25 @@
+flowchart TD
+    consumer["Consumer\nImport-Module SampleModule"]
+    manifest["SampleModule.psd1\n(manifest: export contract)"]
+    root["SampleModule.psm1\n(root module)"]
+
+    subgraph public["Public/ (exported)"]
+        getGreeting["Get-Greeting.ps1"]
+    end
+
+    subgraph private["Private/ (internal)"]
+        formatName["Format-GreetingName.ps1"]
+    end
+
+    ci["CI: ci.yaml\nactionlint + PSScriptAnalyzer + Pester"]
+    tests["tests/\nSampleModule.Tests.ps1\nInvoke-Tests.ps1"]
+
+    consumer --> manifest
+    manifest -->|RootModule| root
+    root -->|dot-source + export| getGreeting
+    root -->|dot-source only| formatName
+    getGreeting -->|calls| formatName
+    tests -->|imports| manifest
+    ci -->|runs| tests
+    ci -->|analyzes| public
+    ci -->|analyzes| private
