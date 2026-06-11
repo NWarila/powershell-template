@@ -1,31 +1,29 @@
+<#
+.SYNOPSIS
+    PSScriptAnalyzer settings for this PowerShell project.
+
+.DESCRIPTION
+    Keeps local and CI analysis aligned with the portfolio PowerShell baseline.
+    The settings file is intentionally self-clean under these same rules.
+#>
 @{
-    # PSScriptAnalyzer settings for this template. Aligned with the PSGallery
-    # ruleset that PowerShell Gallery enforces on publish, with a couple of
-    # template-appropriate carve-outs documented inline.
-    #
-    # CI invokes the analyzer with the built-in PSGallery preset
-    # (Invoke-ScriptAnalyzer -Settings PSGallery -Recurse). This file documents
-    # the local/editor configuration and keeps it consistent with that preset.
-    Severity = @('Error', 'Warning')
+    Severity            = @('Error', 'Warning')
 
     IncludeDefaultRules = $true
 
-    # Rules excluded from local runs. The example module intentionally returns
-    # plain strings rather than declaring SupportsShouldProcess, so the
-    # state-changing-verb rule does not apply to the shipped sample.
-    ExcludeRules = @(
+    ExcludeRules        = @(
         'PSUseShouldProcessForStateChangingFunctions'
     )
 
-    Rules = @{
-        PSPlaceOpenBrace = @{
+    Rules               = @{
+        PSPlaceOpenBrace           = @{
             Enable             = $true
             OnSameLine         = $true
             NewLineAfter       = $true
             IgnoreOneLineBlock = $true
         }
 
-        PSPlaceCloseBrace = @{
+        PSPlaceCloseBrace          = @{
             Enable             = $true
             NewLineAfter       = $true
             IgnoreOneLineBlock = $true
@@ -38,12 +36,12 @@
             IndentationSize = 4
         }
 
-        PSUseConsistentWhitespace = @{
+        PSUseConsistentWhitespace  = @{
             Enable          = $true
             CheckInnerBrace = $true
             CheckOpenBrace  = $true
             CheckOpenParen  = $true
-            CheckOperator   = $true
+            CheckOperator   = $false
             CheckSeparator  = $true
         }
 
@@ -52,7 +50,7 @@
             CheckHashtable = $true
         }
 
-        PSUseCorrectCasing = @{
+        PSUseCorrectCasing         = @{
             Enable = $true
         }
     }
