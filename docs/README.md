@@ -1,20 +1,13 @@
 # Documentation
 
-Documentation for this template follows the [Diátaxis framework](https://diataxis.fr/).
+Documentation for this template follows the [Diataxis framework](https://diataxis.fr/).
 
-| Quadrant    | Path                | Purpose                                            |
-| ----------- | ------------------- | -------------------------------------------------- |
-| Tutorials   | `tutorials/`        | Learning-oriented, start-to-finish walkthroughs    |
-| How-to      | `how-to/`           | Task-oriented guides for a specific goal           |
-| Reference   | `reference/`        | Lookup-oriented facts (module layout, CI surface)  |
-| Explanation | `explanation/`      | Understanding-oriented background and rationale    |
-| Decisions   | `decision-records/` | Architecture Decision Records (MADR format)        |
-| Diagrams    | `diagrams/`         | Mermaid (`.mmd`) source for architecture diagrams  |
+| Quadrant | Path | Purpose |
+| --- | --- | --- |
+| Tutorials | [`tutorials/`](tutorials/) | Learning-oriented, start-to-finish walkthroughs. Start with [getting-started.md](tutorials/getting-started.md). |
+| How-to | [`how-to/`](how-to/) | Task-oriented guides for specific module maintenance goals. |
+| Reference | [`reference/`](reference/) | Stable module layout, export contract, and CI surface facts. |
+| Explanation | [`explanation/`](explanation/) | Architecture rationale and background context. |
+| Decisions | [`decision-records/`](decision-records/) | ADRs in org, template, and repo scopes. |
 
-## Start here
-
-- New to the template? Read [tutorials/getting-started.md](tutorials/getting-started.md).
-- Want the why behind the `src/` / `tests/` shape? See
-  [decision-records/repo/0001-module-layout.md](decision-records/repo/0001-module-layout.md).
-- Want a picture of how the pieces fit? See
-  [diagrams/module-layout.mmd](diagrams/module-layout.mmd).
+Diagrams live in [`diagrams/`](diagrams/) as Mermaid `.mmd` sources.
