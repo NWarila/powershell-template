@@ -2,7 +2,7 @@
 
 This template encodes a small number of opinions that pay off as a module
 grows. This page explains the reasoning; the binding decision is recorded in
-[ADR repo/0001](../decision-records/repo/0001-module-layout.md).
+[ADR-template/0001](../decision-records/template/0001-module-layout.md).
 
 ## Source under `src/`, one function per file
 
