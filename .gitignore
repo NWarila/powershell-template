@@ -34,3 +34,4 @@
 !/docs/**/
 !/docs/**/*.md
 !/docs/**/*.mmd
+!/docs/**/.gitkeep
