@@ -1,4 +1,4 @@
-# ADR-repo/0001: Use Public and Private Function Folders with Explicit Manifest Exports
+# ADR-template/0001: Use Public and Private Function Folders with Explicit Manifest Exports
 
 | Field          | Value                                          |
 | -------------- | ---------------------------------------------- |

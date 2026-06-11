@@ -25,7 +25,7 @@ rather than a blank canvas.
   timeouts, and concurrency cancellation.
 
 The reasoning is recorded in
-[ADR repo/0001](docs/decision-records/repo/0001-module-layout.md).
+[ADR-template/0001](docs/decision-records/template/0001-module-layout.md).
 
 ## Quickstart
 

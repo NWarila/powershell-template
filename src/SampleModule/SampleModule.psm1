@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
     This template dot-sources every function file under Private/ and Public/
     and exports only the public functions. Replace SampleModule with your
     module name and add your own functions under the Public/ and Private/
-    directories. See docs/decision-records/repo/0001-module-layout.md for the
+    directories. See docs/decision-records/template/0001-module-layout.md for the
     rationale behind this layout.
 #>
 
