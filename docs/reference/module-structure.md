@@ -33,6 +33,9 @@ This template lays out a PowerShell module as follows.
   genuinely ships those.
 - **Cross-edition.** `CompatiblePSEditions = @('Core', 'Desktop')` and
   `PowerShellVersion = '5.1'`; CI exercises PowerShell 7 (Core).
+- **Analyzer-clean idiom.** See
+  [clean-function-idiom.ps1](clean-function-idiom.ps1) for a small function that
+  is clean under this template's `PSScriptAnalyzerSettings.psd1`.
 
 ## CI surface
 
