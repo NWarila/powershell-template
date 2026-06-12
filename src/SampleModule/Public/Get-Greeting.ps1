@@ -41,7 +41,7 @@ function Get-Greeting {
     )
 
     begin {
-        New-Variable -Name 'Normalized' -Force -Option Private -Value ([System.String]::Empty)
+        [System.String]$Private:Normalized = [System.String]::Empty
     }
 
     process {
