@@ -40,8 +40,13 @@ function Get-Greeting {
         [string]$Greeting = 'Hello'
     )
 
+    begin {
+        New-Variable -Name 'Normalized' -Force -Option Private -Value ([System.String]::Empty)
+    }
+
     process {
-        $normalized = Format-GreetingName -Name $Name
-        '{0}, {1}!' -f $Greeting, $normalized
+        Clear-Variable -Name 'Normalized' -Force -ErrorAction SilentlyContinue
+        $Normalized = Format-GreetingName -Name $Name
+        '{0}, {1}!' -f $Greeting, $Normalized
     }
 }
