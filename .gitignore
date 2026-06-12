@@ -18,6 +18,10 @@
 !/.github/workflows/
 !/.github/workflows/*.yaml
 
+# Analyzer rules
+!/analyzers/
+!/analyzers/*.psm1
+
 # Module source
 !/src/
 !/src/**/

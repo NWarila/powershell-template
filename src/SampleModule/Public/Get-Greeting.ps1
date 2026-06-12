@@ -40,8 +40,18 @@ function Get-Greeting {
         [string]$Greeting = 'Hello'
     )
 
+    begin {
+        Write-Debug -Message '[Get-Greeting] Entering Begin'
+
+        # Initalize Variable(s)
+        [System.String]$Private:Normalized = [System.String]::Empty
+
+        Write-Debug -Message '[Get-Greeting] Exiting Begin'
+    }
+
     process {
-        $normalized = Format-GreetingName -Name $Name
-        '{0}, {1}!' -f $Greeting, $normalized
+        $Normalized = [System.String]::Empty
+        $Normalized = Format-GreetingName -Name $Name
+        '{0}, {1}!' -f $Greeting, $Normalized
     }
 }
