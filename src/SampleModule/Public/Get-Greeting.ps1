@@ -41,11 +41,16 @@ function Get-Greeting {
     )
 
     begin {
+        Write-Debug -Message '[Get-Greeting] Entering Begin'
+
+        # Initalize Variable(s)
         [System.String]$Private:Normalized = [System.String]::Empty
+
+        Write-Debug -Message '[Get-Greeting] Exiting Begin'
     }
 
     process {
-        Clear-Variable -Name 'Normalized' -Force -ErrorAction SilentlyContinue
+        $Normalized = [System.String]::Empty
         $Normalized = Format-GreetingName -Name $Name
         '{0}, {1}!' -f $Greeting, $Normalized
     }
