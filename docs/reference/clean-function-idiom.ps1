@@ -20,12 +20,12 @@ function Get-TemplateGreeting {
         [System.String]
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.String])]
     param (
