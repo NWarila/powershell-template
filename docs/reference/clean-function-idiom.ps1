@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 function Get-TemplateGreeting {
-    <#
+  <#
     .SYNOPSIS
         Returns an analyzer-clean greeting.
 
@@ -19,40 +19,40 @@ function Get-TemplateGreeting {
     .OUTPUTS
         [System.String]
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.String])]
+  param (
+    [Parameter(
+      Mandatory = $True,
+      ValueFromPipeline = $True
     )]
-    [OutputType([System.String])]
-    param (
-        [Parameter(
-            Mandatory = $True,
-            ValueFromPipeline = $True
-        )]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $Name
-    )
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $Name
+  )
 
-    begin {
-        Write-Debug -Message '[Get-TemplateGreeting] Entering Begin'
-        Write-Debug -Message '[Get-TemplateGreeting] Exiting Begin'
-    }
+  begin {
+    Write-Debug -Message '[Get-TemplateGreeting] Entering Begin'
+    Write-Debug -Message '[Get-TemplateGreeting] Exiting Begin'
+  }
 
-    process {
-        Write-Debug -Message '[Get-TemplateGreeting] Entering Process'
+  process {
+    Write-Debug -Message '[Get-TemplateGreeting] Entering Process'
 
-        [System.String]('Hello, {0}!' -f $Name.Trim())
+    [System.String]('Hello, {0}!' -f $Name.Trim())
 
-        Write-Debug -Message '[Get-TemplateGreeting] Exiting Process'
-    }
+    Write-Debug -Message '[Get-TemplateGreeting] Exiting Process'
+  }
 
-    end {
-        Write-Debug -Message '[Get-TemplateGreeting] Entering End'
-        Write-Debug -Message '[Get-TemplateGreeting] Exiting End'
-    }
+  end {
+    Write-Debug -Message '[Get-TemplateGreeting] Entering End'
+    Write-Debug -Message '[Get-TemplateGreeting] Exiting End'
+  }
 }

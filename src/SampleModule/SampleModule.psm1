@@ -20,20 +20,20 @@ $privateRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Private'
 
 $publicFunctions = @()
 if (Test-Path -LiteralPath $publicRoot) {
-    $publicFunctions = @(Get-ChildItem -LiteralPath $publicRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue)
+  $publicFunctions = @(Get-ChildItem -LiteralPath $publicRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue)
 }
 
 $privateFunctions = @()
 if (Test-Path -LiteralPath $privateRoot) {
-    $privateFunctions = @(Get-ChildItem -LiteralPath $privateRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue)
+  $privateFunctions = @(Get-ChildItem -LiteralPath $privateRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue)
 }
 
 foreach ($file in @($privateFunctions) + @($publicFunctions)) {
-    try {
-        . $file.FullName
-    } catch {
-        throw "Failed to import function file '$($file.FullName)': $($_.Exception.Message)"
-    }
+  try {
+    . $file.FullName
+  } catch {
+    throw "Failed to import function file '$($file.FullName)': $($_.Exception.Message)"
+  }
 }
 
 # Export only the public functions by base name. The manifest's

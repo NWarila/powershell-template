@@ -21,20 +21,20 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$OutputPath = '',
-    [ValidateRange(0, 100)]
-    [double]$MinimumCoverage = 80
+  [string]$OutputPath = '',
+  [ValidateRange(0, 100)]
+  [double]$MinimumCoverage = 80
 )
 
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-    $OutputPath = Join-Path -Path $PSScriptRoot -ChildPath '../TestResults'
+  $OutputPath = Join-Path -Path $PSScriptRoot -ChildPath '../TestResults'
 }
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath '..')).Path
 if (-not (Test-Path -LiteralPath $OutputPath)) {
-    $null = New-Item -ItemType Directory -Path $OutputPath -Force
+  $null = New-Item -ItemType Directory -Path $OutputPath -Force
 }
 $OutputPath = (Resolve-Path -LiteralPath $OutputPath).Path
 
