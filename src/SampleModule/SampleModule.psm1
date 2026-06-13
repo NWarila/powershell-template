@@ -31,8 +31,7 @@ if (Test-Path -LiteralPath $privateRoot) {
 foreach ($file in @($privateFunctions) + @($publicFunctions)) {
     try {
         . $file.FullName
-    }
-    catch {
+    } catch {
         throw "Failed to import function file '$($file.FullName)': $($_.Exception.Message)"
     }
 }
