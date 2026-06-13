@@ -1,5 +1,5 @@
 function Get-Greeting {
-    <#
+  <#
     .SYNOPSIS
         Builds a greeting string for the supplied name.
 
@@ -28,37 +28,37 @@ function Get-Greeting {
     .OUTPUTS
         System.String
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([string])]
-    param(
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$Greeting = 'Hello',
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([string])]
+  param(
+    [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string]$Greeting = 'Hello',
 
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Name
-    )
+    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+    [ValidateNotNullOrEmpty()]
+    [string]$Name
+  )
 
-    begin {
-        Write-Debug -Message '[Get-Greeting] Entering Begin'
+  begin {
+    Write-Debug -Message '[Get-Greeting] Entering Begin'
 
-        # Initalize Variable(s)
-        [System.String]$Private:Normalized = [System.String]::Empty
+    # Initalize Variable(s)
+    [System.String]$Private:Normalized = [System.String]::Empty
 
-        Write-Debug -Message '[Get-Greeting] Exiting Begin'
-    }
+    Write-Debug -Message '[Get-Greeting] Exiting Begin'
+  }
 
-    process {
-        $Normalized = [System.String]::Empty
-        $Normalized = Format-GreetingName -Name $Name
-        '{0}, {1}!' -f $Greeting, $Normalized
-    }
+  process {
+    $Normalized = [System.String]::Empty
+    $Normalized = Format-GreetingName -Name $Name
+    '{0}, {1}!' -f $Greeting, $Normalized
+  }
 }

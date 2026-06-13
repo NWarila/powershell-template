@@ -1,5 +1,5 @@
 function Format-GreetingName {
-    <#
+  <#
     .SYNOPSIS
         Normalizes a name for use in a greeting.
 
@@ -15,22 +15,22 @@ function Format-GreetingName {
     .OUTPUTS
         System.String
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([string])]
-    param(
-        [Parameter(Mandatory)]
-        [ValidateNotNull()]
-        [string]$Name
-    )
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([string])]
+  param(
+    [Parameter(Mandatory)]
+    [ValidateNotNull()]
+    [string]$Name
+  )
 
-    process {
-        ($Name -replace '\s+', ' ').Trim()
-    }
+  process {
+    ($Name -replace '\s+', ' ').Trim()
+  }
 }
