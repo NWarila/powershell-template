@@ -50,7 +50,7 @@ function Get-Greeting {
   begin {
     Write-Debug -Message '[Get-Greeting] Entering Begin'
 
-    # Initalize Variable(s)
+    # Initialize Variable(s)
     [System.String]$Private:Normalized = [System.String]::Empty
 
     Write-Debug -Message '[Get-Greeting] Exiting Begin'
