@@ -25,7 +25,7 @@ function Format-GreetingName {
   )]
   [OutputType([string])]
   param(
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
     [ValidateNotNull()]
     [string]$Name
   )
