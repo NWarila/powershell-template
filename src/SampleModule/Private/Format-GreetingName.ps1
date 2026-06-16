@@ -25,7 +25,13 @@ Function Format-GreetingName {
   )]
   [OutputType([System.String])]
   Param (
-    [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $True,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNull()]
     [System.String]
     $Name

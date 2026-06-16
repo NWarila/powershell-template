@@ -30,8 +30,11 @@ Function Get-TemplateGreeting {
   [OutputType([System.String])]
   Param (
     [Parameter(
+      DontShow = $False,
       Mandatory = $True,
-      ValueFromPipeline = $True
+      ParameterSetName = 'default',
+      ValueFromPipeline = $True,
+      ValueFromPipelineByPropertyName = $False
     )]
     [ValidateNotNullOrEmpty()]
     [System.String]

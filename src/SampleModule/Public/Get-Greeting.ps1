@@ -38,12 +38,24 @@ Function Get-Greeting {
   )]
   [OutputType([System.String])]
   Param (
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Greeting = 'Hello',
 
-    [Parameter(Mandatory = $True, ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $True,
+      ValueFromPipelineByPropertyName = $True
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Name
