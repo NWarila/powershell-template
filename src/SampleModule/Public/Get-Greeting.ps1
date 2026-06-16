@@ -1,4 +1,4 @@
-function Get-Greeting {
+Function Get-Greeting {
   <#
     .SYNOPSIS
         Builds a greeting string for the supplied name.
@@ -36,29 +36,41 @@ function Get-Greeting {
     SupportsPaging = $False,
     SupportsShouldProcess = $False
   )]
-  [OutputType([string])]
-  param(
+  [OutputType([System.String])]
+  Param (
     [Parameter()]
     [ValidateNotNullOrEmpty()]
-    [string]$Greeting = 'Hello',
+    [System.String]
+    $Greeting = 'Hello',
 
-    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+    [Parameter(Mandatory = $True, ValueFromPipeline = $True, ValueFromPipelineByPropertyName = $True)]
     [ValidateNotNullOrEmpty()]
-    [string]$Name
+    [System.String]
+    $Name
   )
 
-  begin {
-    Write-Debug -Message '[Get-Greeting] Entering Begin'
+  Begin {
+    Write-Debug -Message:'[Get-Greeting] Entering Begin'
 
     # Initialize Variable(s)
     [System.String]$Private:Normalized = [System.String]::Empty
+    [System.String]$Private:Result = [System.String]::Empty
 
-    Write-Debug -Message '[Get-Greeting] Exiting Begin'
-  }
+    Write-Debug -Message:'[Get-Greeting] Exiting Begin'
+  } Process {
+    Write-Debug -Message:'[Get-Greeting] Entering Process'
 
-  process {
+    # Reset Variable(s)
     $Normalized = [System.String]::Empty
-    $Normalized = Format-GreetingName -Name $Name
-    '{0}, {1}!' -f $Greeting, $Normalized
+    $Result = [System.String]::Empty
+
+    $Normalized = Format-GreetingName -Name:$Name
+    [System.String]$Result = '{0}, {1}!' -f $Greeting, $Normalized
+    $Result
+
+    Write-Debug -Message:'[Get-Greeting] Exiting Process'
+  } End {
+    Write-Debug -Message:'[Get-Greeting] Entering End'
+    Write-Debug -Message:'[Get-Greeting] Exiting End'
   }
 }

@@ -18,6 +18,7 @@
   IncludeRules        = @('*')
 
   ExcludeRules        = @(
+    'PSUseCorrectCasing'
     'PSUseShouldProcessForStateChangingFunctions'
   )
 
@@ -60,10 +61,6 @@
       CheckHashtable = $true
     }
 
-    PSUseCorrectCasing                   = @{
-      Enable = $true
-    }
-
     'Measure-PrivateVariableDeclaration' = @{
       Enable = $true
     }
@@ -76,6 +73,10 @@
       Enable = $true
     }
 
+    'Measure-CanonicalNamedBlock'        = @{
+      Enable = $true
+    }
+
     'Measure-ExplicitCmdletBinding'      = @{
       Enable = $true
     }
@@ -84,11 +85,19 @@
       Enable = $true
     }
 
+    'Measure-CanonicalKeywordCasing'     = @{
+      Enable = $true
+    }
+
     'Measure-NoRemoveVariableCleanup'    = @{
       Enable = $true
     }
 
     'Measure-NoNewVariableDeclaration'   = @{
+      Enable = $true
+    }
+
+    'Measure-SoftReturn'                 = @{
       Enable = $true
     }
   }

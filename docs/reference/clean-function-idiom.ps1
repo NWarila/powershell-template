@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Get-TemplateGreeting {
+Function Get-TemplateGreeting {
   <#
     .SYNOPSIS
         Returns an analyzer-clean greeting.
@@ -28,7 +28,7 @@ function Get-TemplateGreeting {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.String])]
-  param (
+  Param (
     [Parameter(
       Mandatory = $True,
       ValueFromPipeline = $True
@@ -38,21 +38,28 @@ function Get-TemplateGreeting {
     $Name
   )
 
-  begin {
-    Write-Debug -Message '[Get-TemplateGreeting] Entering Begin'
-    Write-Debug -Message '[Get-TemplateGreeting] Exiting Begin'
-  }
+  Begin {
+    Write-Debug -Message:'[Get-TemplateGreeting] Entering Begin'
 
-  process {
-    Write-Debug -Message '[Get-TemplateGreeting] Entering Process'
+    # Initialize Variable(s)
+    [System.String]$Private:TrimmedName = [System.String]::Empty
+    [System.String]$Private:Result = [System.String]::Empty
 
-    [System.String]('Hello, {0}!' -f $Name.Trim())
+    Write-Debug -Message:'[Get-TemplateGreeting] Exiting Begin'
+  } Process {
+    Write-Debug -Message:'[Get-TemplateGreeting] Entering Process'
 
-    Write-Debug -Message '[Get-TemplateGreeting] Exiting Process'
-  }
+    # Reset Variable(s)
+    $TrimmedName = [System.String]::Empty
+    $Result = [System.String]::Empty
 
-  end {
-    Write-Debug -Message '[Get-TemplateGreeting] Entering End'
-    Write-Debug -Message '[Get-TemplateGreeting] Exiting End'
+    $TrimmedName = $Name.Trim()
+    [System.String]$Result = 'Hello, {0}!' -f $TrimmedName
+    $Result
+
+    Write-Debug -Message:'[Get-TemplateGreeting] Exiting Process'
+  } End {
+    Write-Debug -Message:'[Get-TemplateGreeting] Entering End'
+    Write-Debug -Message:'[Get-TemplateGreeting] Exiting End'
   }
 }

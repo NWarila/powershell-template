@@ -32,7 +32,7 @@ Goal: add a new exported function to the module and keep CI green.
 4. **Validate locally.**
 
    ```bash
-   pwsh -c "Invoke-ScriptAnalyzer -Path . -Settings PSGallery -Recurse"
+   pwsh -c "Invoke-ScriptAnalyzer -Path . -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse"
    pwsh -File tests/Invoke-Tests.ps1
    ```
 

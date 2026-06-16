@@ -1,4 +1,4 @@
-function Format-GreetingName {
+Function Format-GreetingName {
   <#
     .SYNOPSIS
         Normalizes a name for use in a greeting.
@@ -23,14 +23,36 @@ function Format-GreetingName {
     SupportsPaging = $False,
     SupportsShouldProcess = $False
   )]
-  [OutputType([string])]
-  param(
+  [OutputType([System.String])]
+  Param (
     [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
     [ValidateNotNull()]
-    [string]$Name
+    [System.String]
+    $Name
   )
 
-  process {
-    ($Name -replace '\s+', ' ').Trim()
+  Begin {
+    Write-Debug -Message:'[Format-GreetingName] Entering Begin'
+
+    # Initialize Variable(s)
+    [System.String]$Private:NormalizedName = [System.String]::Empty
+    [System.String]$Private:Result = [System.String]::Empty
+
+    Write-Debug -Message:'[Format-GreetingName] Exiting Begin'
+  } Process {
+    Write-Debug -Message:'[Format-GreetingName] Entering Process'
+
+    # Reset Variable(s)
+    $NormalizedName = [System.String]::Empty
+    $Result = [System.String]::Empty
+
+    $NormalizedName = ($Name -replace '\s+', ' ').Trim()
+    [System.String]$Result = $NormalizedName
+    $Result
+
+    Write-Debug -Message:'[Format-GreetingName] Exiting Process'
+  } End {
+    Write-Debug -Message:'[Format-GreetingName] Entering End'
+    Write-Debug -Message:'[Format-GreetingName] Exiting End'
   }
 }
