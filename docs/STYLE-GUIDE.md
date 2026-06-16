@@ -349,7 +349,8 @@ so diffs and reviews are stable. Four clauses:
 - **(a) `CmdletBinding` options** appear in **alphabetical** order:
   `ConfirmImpact, DefaultParameterSetName, HelpUri, PositionalBinding, SupportsPaging, SupportsShouldProcess`.
 - **(b) `[Parameter(...)]` named arguments** appear in **alphabetical** order
-  (`Mandatory, Position?, ValueFromPipeline, ValueFromPipelineByPropertyName, …`).
+  (`DontShow, Mandatory, ParameterSetName, ValueFromPipeline,
+  ValueFromPipelineByPropertyName` per SG-7).
 - **(c) Attributes on a parameter** appear in this canonical order:
   `[Parameter(...)]` → `[Alias(...)]` → validation/transformation attributes
   (`[Validate*]`, etc., **alphabetical** among themselves) → **the type literal** →
@@ -509,3 +510,142 @@ Process {
   Write-Debug -Message:'[ConvertTo-Thing] Exiting Process'
 }
 ```
+
+---
+
+## SG-7 — Explicit parameter surface **[mechanical — analyzer-enforced]**
+
+See [ADR-repo/0008](decision-records/repo/0008-sg7-explicit-parameter-surface.md)
+for the accepted rationale and Microsoft-source references.
+
+**Rule.** Every parameter declares exactly one `[Parameter(...)]` attribute with
+exactly five named arguments, in SG-5 alphabetical order:
+
+1. `DontShow`
+2. `Mandatory`
+3. `ParameterSetName`
+4. `ValueFromPipeline`
+5. `ValueFromPipelineByPropertyName`
+
+Values are **per-parameter** and behavior-preserving: `Mandatory`,
+`ValueFromPipeline`, and `ValueFromPipelineByPropertyName` are `$True` only where the
+parameter actually has that binding contract; otherwise they are explicitly
+`$False`. `ParameterSetName` is `'default'` for the current single-set house model.
+`DontShow` is `$False` except for a deliberately hidden test seam.
+
+**Forbidden.** Do not declare `Position`, `HelpMessage`, or
+`ValueFromRemainingArguments` in `[Parameter(...)]`.
+
+**Exempt.** The `$StoreFactory` test seam in `Get-StoreCertificate` uses
+`DontShow = $True` because it exists only for deterministic tests and is not a CLI
+surface. The seam still declares the other four SG-7 options explicitly.
+
+**Why.** The explicit five-option surface is an auditability house preference.
+Declaring a Boolean option at its default value is binding-equivalent to omitting it,
+so `Mandatory = $False`, `ValueFromPipeline = $False`, and
+`ValueFromPipelineByPropertyName = $False` are not behavior changes. In this
+single-parameter-set project, `ParameterSetName = 'default'` makes the house set
+visible without adding an alternate binding path.
+
+The forbid-list is correctness, not taste:
+
+- `Position` is prohibited because it overrides `CmdletBinding(PositionalBinding =
+  $False)`: any declared parameter position re-enables positional binding for that
+  parameter.
+- `ValueFromPipelineByPropertyName` is a per-parameter choice. Blanket `$True`
+  accepts matching object properties or aliases by name, which can silently bind a
+  property the function did not intend to consume.
+- `HelpMessage` duplicates the comment-based `.PARAMETER` help used by this repo and
+  only adds interactive value at the mandatory-parameter `!?` prompt.
+- `ValueFromRemainingArguments` is a catch-all positional capture mechanism, and this
+  project has no remaining-argument surface.
+
+**Enforced by:**
+
+- custom rule `Measure-ExplicitParameterAttribute` (Warning) — every parameter must
+  have `[Parameter(...)]`, must declare the five SG-7 options, and must not declare
+  the SG-7 forbid-list;
+- custom rule `Measure-CanonicalAttributeOrder` (Warning) — the five options must
+  stay in SG-5 alphabetical order.
+
+### Example
+
+```powershell
+[Parameter(
+  DontShow = $False,
+  Mandatory = $True,
+  ParameterSetName = 'default',
+  ValueFromPipeline = $False,
+  ValueFromPipelineByPropertyName = $False
+)]
+[ValidateNotNullOrEmpty()]
+[System.String]
+$Path
+```
+
+### Example (hidden test seam)
+
+```powershell
+[Parameter(
+  DontShow = $True,
+  Mandatory = $False,
+  ParameterSetName = 'default',
+  ValueFromPipeline = $False,
+  ValueFromPipelineByPropertyName = $False
+)]
+[ValidateNotNull()]
+[System.Management.Automation.ScriptBlock]
+$StoreFactory
+```
+
+---
+
+## SG-8 — Centralized message table **[judgment — review-enforced]**
+
+See [ADR-repo/0009](decision-records/repo/0009-sg8-centralized-message-table.md)
+for the accepted rationale and source references.
+
+**Rule.** User-facing message strings live in one script-scope
+`$Script:Message` hashtable. Author message entries per function as co-located
+file-scope fragments, immediately before or after the owning function:
+
+```powershell
+$Script:Message += @{
+  'Get-Thing.MissingPath' = 'Path ''{0}'' does not exist.'
+}
+```
+
+The build emits `[System.Collections.Hashtable]$Script:Message = @{}` at the top
+of the merged functions artifact before the first fragment, so `$Script:Message +=
+@{ ... }` is StrictMode-safe. Call sites index the table directly and format at the
+point of use:
+
+```powershell
+New-ErrorRecord -Message:($Script:Message['Get-Thing.MissingPath'] -f $Path)
+```
+
+Message values are plain single-quoted hashtable strings. Do not use `data {}` or
+`ConvertFrom-StringData` for the house message table. Keys are namespaced as
+`FunctionName.Purpose`; duplicate keys fail during merge because hashtable addition
+throws, giving collision detection. Do not write inline user-facing `-Message`
+literals, and do not introduce `$FailureMessage`-style intermediate variables whose
+only purpose is to hold a formatted message.
+
+`Write-Debug` text is explicitly out of scope. Debug anchors are diagnostic trace
+strings, not user-facing messages, and they stay inline so SG-6's function-flow
+shape remains visible.
+
+**Why.** The convention gives user-facing text a single lookup surface without
+moving messages away from the function that owns them. Per-function fragments keep
+small-file review ergonomic while the build still produces one merged table for the
+single-script artifact.
+
+**Honest framing.** For a tool this small, one hand-written central table would also
+be correct. The house chooses co-located fragments because the owning function,
+tests, and messages stay together during normal edits. This mirrors the DSC
+per-resource string-table habit, but keeps the table in script because this
+repository intentionally ships a single English-only script instead of localized
+resource files.
+
+**Enforced by:** review. There is no analyzer rule yet; a future
+`Measure-*` rule may make the mechanical parts enforceable.
