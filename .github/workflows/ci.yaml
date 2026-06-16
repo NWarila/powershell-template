@@ -1,7 +1,7 @@
 name: CI
 
 # Self-validation for NWarila/powershell-template. Lints workflows
-# (actionlint), runs PSScriptAnalyzer with the PSGallery ruleset, and executes
+# (actionlint), runs PSScriptAnalyzer with the house settings, and executes
 # the Pester v5 suite with NUnit output and a coverage target. Designed to be
 # green out of the box so consumers inherit a passing baseline.
 
@@ -58,7 +58,7 @@ jobs:
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path . -Settings PSGallery -Recurse
+          $results = Invoke-ScriptAnalyzer -Path . -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse
           if ($results) {
             $results | Format-Table -AutoSize | Out-String | Write-Host
             $errors = @($results | Where-Object { $_.Severity -eq 'Error' })

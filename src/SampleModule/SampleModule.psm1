@@ -19,20 +19,20 @@ $publicRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Public'
 $privateRoot = Join-Path -Path $PSScriptRoot -ChildPath 'Private'
 
 $publicFunctions = @()
-if (Test-Path -LiteralPath $publicRoot) {
+If (Test-Path -LiteralPath $publicRoot) {
   $publicFunctions = @(Get-ChildItem -LiteralPath $publicRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue)
 }
 
 $privateFunctions = @()
-if (Test-Path -LiteralPath $privateRoot) {
+If (Test-Path -LiteralPath $privateRoot) {
   $privateFunctions = @(Get-ChildItem -LiteralPath $privateRoot -Filter '*.ps1' -File -ErrorAction SilentlyContinue)
 }
 
-foreach ($file in @($privateFunctions) + @($publicFunctions)) {
-  try {
+ForEach ($file In @($privateFunctions) + @($publicFunctions)) {
+  Try {
     . $file.FullName
-  } catch {
-    throw "Failed to import function file '$($file.FullName)': $($_.Exception.Message)"
+  } Catch {
+    Throw "Failed to import function file '$($file.FullName)': $($_.Exception.Message)"
   }
 }
 

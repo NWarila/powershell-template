@@ -42,5 +42,5 @@ This template lays out a PowerShell module as follows.
 | Check            | Tool             | Gate                                    |
 | ---------------- | ---------------- | --------------------------------------- |
 | Workflow lint    | actionlint       | Errors fail the job                     |
-| Static analysis  | PSScriptAnalyzer | PSGallery ruleset; errors/warnings fail |
+| Static analysis  | PSScriptAnalyzer | House settings; errors/warnings fail     |
 | Tests + coverage | Pester v5        | All tests pass; coverage ≥ 80%          |

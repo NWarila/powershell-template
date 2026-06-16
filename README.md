@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/NWarila/powershell-template/actions/workflows/ci.yaml/badge.svg)](https://github.com/NWarila/powershell-template/actions/workflows/ci.yaml)
 [![PowerShell 5.1+ / 7+](https://img.shields.io/badge/PowerShell-5.1%2B%20%7C%207%2B-5391FE?logo=powershell&logoColor=white)](https://learn.microsoft.com/powershell/)
-[![PSScriptAnalyzer](https://img.shields.io/badge/lint-PSScriptAnalyzer-blue)](https://github.com/PowerShell/PSScriptAnalyzer)
+[![PSScriptAnalyzer](https://img.shields.io/badge/lint-house%20PSScriptAnalyzer-blue)](PSScriptAnalyzerSettings.psd1)
 [![Tested with Pester](https://img.shields.io/badge/tested%20with-Pester%20v5-green)](https://pester.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -17,8 +17,8 @@ rather than a blank canvas.
   (exported) and `Private/` (internal), one per file, with an explicit
   `FunctionsToExport` list — no wildcard exports.
 - **Publish-ready.** The manifest satisfies the PowerShell Gallery's
-  requirements and the PSGallery PSScriptAnalyzer ruleset, so a module can be
-  published without rework.
+  requirements, and the house PSScriptAnalyzer settings keep the module
+  reviewable without rework.
 - **Cross-edition.** Declares `CompatiblePSEditions = @('Core', 'Desktop')`
   with a 5.1 floor; CI exercises PowerShell 7 (Core) on Ubuntu.
 - **Safe CI.** Least-privilege permissions, SHA-pinned actions, per-job
@@ -54,7 +54,7 @@ Then edit:
 ### 3. Validate locally
 
 ```bash
-pwsh -c "Invoke-ScriptAnalyzer -Path . -Settings PSGallery -Recurse"
+pwsh -c "Invoke-ScriptAnalyzer -Path . -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse"
 pwsh -File tests/Invoke-Tests.ps1
 ```
 
@@ -86,7 +86,7 @@ The [CI workflow](.github/workflows/ci.yaml) runs on every push and pull request
 | Job              | What it does                                                 |
 | ---------------- | ------------------------------------------------------------ |
 | actionlint       | Lints GitHub Actions workflows                               |
-| PSScriptAnalyzer | `Invoke-ScriptAnalyzer -Settings PSGallery -Recurse`         |
+| PSScriptAnalyzer | `Invoke-ScriptAnalyzer -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse` |
 | Pester           | Pester v5 suite, NUnit output, coverage target (≥ 80%)       |
 
 ## Documentation

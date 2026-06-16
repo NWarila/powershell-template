@@ -4,7 +4,7 @@ Describe 'SG-1 house analyzer rules' {
   BeforeAll {
     $AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
     $script:AnalyzerRulePath = $AnalyzerRulePath
-    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+    If (-not (Get-Module -Name PSScriptAnalyzer)) {
       Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
     }
   }
@@ -269,12 +269,12 @@ function Get-Thing {
 Describe 'SG-4 house analyzer rules' {
   BeforeAll {
     $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
-    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+    If (-not (Get-Module -Name PSScriptAnalyzer)) {
       Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
     }
 
     $script:NewExplicitBindingFixture = {
-      param (
+      Param (
         [Parameter()]
         [AllowNull()]
         [System.String]
@@ -297,9 +297,9 @@ Describe 'SG-4 house analyzer rules' {
       }
 
       $OptionLines = [System.Collections.Generic.List[System.String]]::new()
-      for ($Index = 0; $Index -lt $Options.Count; $Index++) {
+      For ($Index = 0; $Index -lt $Options.Count; $Index++) {
         $Line = '        {0} = {1}' -f $Options[$Index].Name, $Options[$Index].Value
-        if ($Index -lt ($Options.Count - 1)) {
+        If ($Index -lt ($Options.Count - 1)) {
           $Line = '{0},' -f $Line
         }
 
@@ -307,7 +307,7 @@ Describe 'SG-4 house analyzer rules' {
       }
 
       $OutputTypeLine = [System.String]::Empty
-      if ($IncludeOutputType -eq $True) {
+      If ($IncludeOutputType -eq $True) {
         $OutputTypeLine = '    [OutputType([System.String])]'
       }
 
@@ -345,7 +345,7 @@ $OutputTypeLine
       'SupportsPaging'
     )
 
-    foreach ($RequiredOption in $RequiredOptions) {
+    ForEach ($RequiredOption In $RequiredOptions) {
       $Results = Invoke-ScriptAnalyzer `
         -ScriptDefinition (& $script:NewExplicitBindingFixture -MissingOption $RequiredOption) `
         -CustomRulePath $script:AnalyzerRulePath `
@@ -394,7 +394,7 @@ function Get-Thing {
 Describe 'SG-5 house analyzer rules' {
   BeforeAll {
     $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
-    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+    If (-not (Get-Module -Name PSScriptAnalyzer)) {
       Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
     }
   }
@@ -564,7 +564,7 @@ function Get-Thing {
     $Results.Message | Should -Match 'SG-5d'
   }
 
-  It 'does not flag unsorted parameter names when explicit Position trips the guard' {
+  It 'flags Parameter Position even when parameter order is load-bearing' {
     $ScriptDefinition = @'
 function Get-Thing {
     [CmdletBinding(
@@ -597,7 +597,10 @@ function Get-Thing {
 
     $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
 
-    $Results | Should -HaveCount 0
+    $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+    [System.String]$MessageText = $Results.Message -join "`n"
+    $MessageText | Should -Match 'Position'
+    $MessageText | Should -Match 'SG-5e'
   }
 
   It 'accepts the canonical declaration idiom' {
