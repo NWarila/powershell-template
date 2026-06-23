@@ -13,6 +13,11 @@
 
 LICENSE   text eol=lf
 
+# Vendored InjectionHunter ruleset: store byte-identical to the PowerShell Gallery
+# package (UTF-16 manifest; CRLF + signed module). No EOL normalization.
+analyzers/InjectionHunter/InjectionHunter.psd1  -text
+analyzers/InjectionHunter/InjectionHunter.psm1  -text
+
 .github/        export-ignore
 .gitignore      export-ignore
 .gitattributes  export-ignore

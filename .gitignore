@@ -22,6 +22,12 @@
 !/analyzers/
 !/analyzers/*.psm1
 
+# Vendored InjectionHunter ruleset (frozen, pinned; see analyzers/InjectionHunter/VENDORED.md)
+!/analyzers/InjectionHunter/
+!/analyzers/InjectionHunter/*.psd1
+!/analyzers/InjectionHunter/*.psm1
+!/analyzers/InjectionHunter/*.md
+
 # Module source
 !/src/
 !/src/**/

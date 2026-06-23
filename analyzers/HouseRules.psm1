@@ -167,7 +167,7 @@ Function Get-HouseRuleVariableName {
     $VariableAst.VariablePath.IsScript -eq $False -and
     $VariableAst.VariablePath.IsGlobal -eq $False
   ) {
-    [System.String]($VariableAst.VariablePath.UserPath -replace '(?i)^(private|local):', '')
+    [System.String]($VariableAst.VariablePath.UserPath -replace '(?i)^(private|local):', [System.String]::Empty)
   }
 
 }
@@ -926,9 +926,9 @@ Function Get-HouseRuleFunctionAttribute {
           (
             ([System.String]$PSItem.TypeName.FullName) -replace
             '^(System\.Management\.Automation\.)?',
-            ''
+            [System.String]::Empty
           ) -replace 'Attribute$',
-          ''
+          [System.String]::Empty
         ) -ieq $AttributeName
       }
   }
@@ -961,9 +961,9 @@ Function Get-HouseRuleAttributeName {
     (
       ([System.String]$AttributeAst.TypeName.FullName) -replace
       '^(System\.Management\.Automation\.)?',
-      ''
+      [System.String]::Empty
     ) -replace 'Attribute$',
-    ''
+    [System.String]::Empty
   )
 
 }

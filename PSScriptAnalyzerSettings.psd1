@@ -11,6 +11,7 @@
 
   CustomRulePath      = @(
     './analyzers/HouseRules.psm1'
+    './analyzers/InjectionHunter/InjectionHunter.psd1'
   )
 
   IncludeDefaultRules = $true
