@@ -35,6 +35,10 @@
 # Tests
 !/tests/
 !/tests/*.ps1
+!/tests/*.Tests.ps1
+!/tests/Fixtures/
+!/tests/Fixtures/**/
+!/tests/Fixtures/**/*.ps1
 
 # Documentation
 !/docs/
