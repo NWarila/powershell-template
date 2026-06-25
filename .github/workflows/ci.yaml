@@ -21,6 +21,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  layout-marker:
+    name: Repo layout marker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate repo layout marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          [ -f .github/.script ] && count=$((count+1))
+          [ -f .github/.module ] && count=$((count+1))
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Repo layout marker invalid: exactly one of .github/.script or .github/.module must exist (found $count)."
+            exit 1
+          fi
   actionlint:
     name: actionlint
     runs-on: ubuntu-latest
