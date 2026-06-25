@@ -55,6 +55,7 @@ $OutputPath = (Resolve-Path -LiteralPath $OutputPath).Path
 $config = New-PesterConfiguration
 $config.Run.Path = $PSScriptRoot
 $config.Run.Throw = $true
+$config.Run.PassThru = $true
 $config.Output.Verbosity = 'Detailed'
 
 $config.TestResult.Enabled = $true
