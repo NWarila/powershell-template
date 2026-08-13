@@ -143,9 +143,8 @@ jobs:
         uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           sarif_file: ${{ runner.temp }}/pair-results/${{ matrix.pair.artifact }}.sarif
-          # Explicit per-pair category: GitHub truncates a slash-form automation id
-          # ('pester-matrix/<pair>' became category 'pester-matrix'), which would make
-          # multiple pairs last-writer-win one category. The input overrides the SARIF.
+          # Belt-and-braces with the SARIF's own automationDetails.id, which takes
+          # precedence when present; both name the same slashless per-pair category.
           category: pester-matrix-${{ matrix.pair.artifact }}
       - name: Upload test results
         if: always()
