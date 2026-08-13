@@ -85,6 +85,8 @@ jobs:
     name: Pair harness self-test
     permissions:
       contents: read
+      checks: write          # report job: check run with per-test results
+      pull-requests: write   # report job: sticky results comment on the PR
     uses: ./.github/workflows/pester-matrix.yaml
     with:
       scan-path: examples/pair

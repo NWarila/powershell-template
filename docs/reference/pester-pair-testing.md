@@ -181,11 +181,12 @@ on:
     paths:
       - 'scripts/**.ps1'   # script pairs (<Name>.ps1 + <Name>.pester.ps1)
 
-permissions:
-  contents: read
-
 jobs:
   pester-matrix:
+    permissions:
+      contents: read
+      checks: write          # report job: check run with per-test results
+      pull-requests: write   # report job: sticky results comment on the PR
     uses: NWarila/powershell-template/.github/workflows/pester-matrix.yaml@<pinned-sha>
     with:
       scan-path: scripts
@@ -206,6 +207,11 @@ all emitted by the harness only when `GITHUB_ACTIONS` is set (local runs write n
   the PR diff; anatomy violations become `::error` annotations. Both still fail the leg.
 - **Job summary**: each leg appends a markdown table (anatomy / analyzer / spec counts and
   duration) to `$GITHUB_STEP_SUMMARY`, readable on the run page without opening logs.
+- **Check run + sticky PR comment**: an aggregate `report` job feeds every leg's JUnit file
+  to the SHA-pinned `EnricoMi/publish-unit-test-result-action`, producing a named check run
+  and ONE edited-in-place PR comment with run-over-run deltas. Requires the caller to grant
+  `checks: write` and `pull-requests: write`; presentation runs `if: always()` so failing
+  legs still report.
 
 ## 6. The local loop
 
