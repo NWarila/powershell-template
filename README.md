@@ -102,6 +102,7 @@ The [CI workflow](.github/workflows/ci.yaml) runs on every push and pull request
 | actionlint       | Lints GitHub Actions workflows                               |
 | PSScriptAnalyzer | `Invoke-ScriptAnalyzer -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse` |
 | Pair harness     | Self-test: the pester-matrix reusable workflow against `examples/pair` at this revision |
+| CodeQL           | GitHub's scanner over the Actions workflows (`codeql.yaml`: taint tracking, injection queries) |
 | Pester           | Pester v5 suite, NUnit output, coverage target (≥ 80%)       |
 
 ## Documentation
