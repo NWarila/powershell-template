@@ -74,8 +74,9 @@ jobs:
                 if [ -f "${pester}" ]; then
                   name="${file#"${SCAN_PATH}"/}"
                   name="${name%.ps1}"
-                  pairs="$(jq -c --arg name "${name}" --arg script "${file}" --arg pester "${pester}" \
-                    '. + [{name: $name, script: $script, pester: $pester}]' <<<"${pairs}")"
+                  artifact="$(printf '%s' "${name}" | tr '/\\:"<>|*? ' '-')"
+                  pairs="$(jq -c --arg name "${name}" --arg artifact "${artifact}" --arg script "${file}" --arg pester "${pester}" \
+                    '. + [{name: $name, artifact: $artifact, script: $script, pester: $pester}]' <<<"${pairs}")"
                 else
                   orphans+=("${file} has no sibling spec ${pester}")
                 fi
@@ -129,7 +130,15 @@ jobs:
         env:
           PAIR_SCRIPT: ${{ matrix.pair.script }}
           PAIR_PESTER: ${{ matrix.pair.pester }}
+          PAIR_RESULTS_DIR: ${{ runner.temp }}/pair-results
         run: |
           ./.powershell-template/harness/Invoke-PairTests.ps1 `
             -Script $env:PAIR_SCRIPT `
             -Pester $env:PAIR_PESTER
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-results-${{ matrix.pair.artifact }}
+          path: ${{ runner.temp }}/pair-results/
+          if-no-files-found: ignore

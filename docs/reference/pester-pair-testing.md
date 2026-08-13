@@ -195,7 +195,19 @@ Pin `@<pinned-sha>` like every other action; bumping the pin is how a consumer a
 organizational tests, because every standardized check this repo adds to the matrix reaches
 consumers through that single `uses:` line.
 
-## 5. The local loop
+## 5. Results surfaced to developers
+
+GitHub has no native test-format ingestion, so the matrix uses its three real surfaces —
+all emitted by the harness only when `GITHUB_ACTIONS` is set (local runs write no files):
+
+- **Per-leg artifacts**: each leg writes `<Pair>.junit.xml` (Pester's native JUnit output)
+  and uploads it as `pester-results-<pair>` — the downloadable, machine-readable record.
+- **Annotations**: analyzer findings become `::warning` annotations pinned to file/line on
+  the PR diff; anatomy violations become `::error` annotations. Both still fail the leg.
+- **Job summary**: each leg appends a markdown table (anatomy / analyzer / spec counts and
+  duration) to `$GITHUB_STEP_SUMMARY`, readable on the run page without opening logs.
+
+## 6. The local loop
 
 ```sh
 # Everything the matrix runs, for every pair under a directory:

@@ -257,6 +257,11 @@ Function Test-PairAnatomy {
   }
 
   If ($Violations.Count -gt 0) {
+    If ($env:GITHUB_ACTIONS -eq 'true') {
+      ForEach ($Violation In $Violations) {
+        Write-Information -MessageData:('::error title=Canonical anatomy::{0}' -f $Violation) -InformationAction:'Continue'
+      }
+    }
     Throw ('Canonical anatomy violated (see docs/reference/pester-pair-testing.md): {0}' -f ($Violations -join '; '))
   }
   Write-Information -MessageData:'Anatomy: canonical.' -InformationAction:'Continue'
@@ -322,6 +327,11 @@ Function Invoke-PairLeg {
   [System.Object[]]$Private:Findings = @()
   [System.String]$Private:FindingText = [System.String]::Empty
   [System.Object]$Private:Configuration = $Null
+  [System.Object]$Private:PesterRun = $Null
+  [System.Boolean]$Private:InGithubActions = ($env:GITHUB_ACTIONS -eq 'true')
+  [System.String]$Private:PairName = [System.String]::Empty
+  [System.String]$Private:AnnotationPath = [System.String]::Empty
+  [System.String]$Private:ResultsDirectory = [System.String]::Empty
   [System.String]$Private:ResolvedPester = [System.String]::Empty
   [System.String]$Private:ResolvedScript = [System.String]::Empty
 
@@ -330,6 +340,12 @@ Function Invoke-PairLeg {
   # caller path must not silently re-resolve against that root.
   $ResolvedPester = (Resolve-Path -LiteralPath:$PesterPath).Path
   $ResolvedScript = (Resolve-Path -LiteralPath:$ScriptPath).Path
+  $PairName = [System.IO.Path]::GetFileNameWithoutExtension($ResolvedScript)
+  $AnnotationPath = $ResolvedScript
+  If ($InGithubActions -and -not [System.String]::IsNullOrEmpty($env:GITHUB_WORKSPACE)) {
+    # Annotations attach to the PR diff only with workspace-relative paths.
+    $AnnotationPath = [System.IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $ResolvedScript)
+  }
 
   Write-Information -MessageData:('=== Pair: {0} ===' -f $ResolvedScript) -InformationAction:'Continue'
 
@@ -344,6 +360,11 @@ Function Invoke-PairLeg {
     Pop-Location
   }
   If ($Findings.Count -gt 0) {
+    If ($InGithubActions) {
+      ForEach ($Finding In $Findings) {
+        Write-Information -MessageData:('::warning file={0},line={1},title=PSScriptAnalyzer {2}::{3}' -f $AnnotationPath, $Finding.Line, $Finding.RuleName, $Finding.Message) -InformationAction:'Continue'
+      }
+    }
     $FindingText = $Findings |
       Format-Table -Property:@('RuleName', 'Severity', 'Line', 'Message') -AutoSize |
       Out-String -Width:220
@@ -354,9 +375,37 @@ Function Invoke-PairLeg {
 
   $Configuration = New-PesterConfiguration
   $Configuration.Run.Path = $ResolvedPester
-  $Configuration.Run.Throw = $True
+  $Configuration.Run.PassThru = $True
   $Configuration.Output.Verbosity = 'Detailed'
-  Invoke-Pester -Configuration:$Configuration
+  If ($InGithubActions) {
+    # JUnit XML is the interchange format GitHub tooling consumes; the matrix
+    # uploads the whole directory as a per-leg artifact.
+    $ResultsDirectory = $env:PAIR_RESULTS_DIR
+    If ([System.String]::IsNullOrEmpty($ResultsDirectory)) {
+      $ResultsDirectory = Join-Path -Path:(Get-Location).Path -ChildPath:'TestResults'
+    }
+    $Null = New-Item -ItemType:'Directory' -Path:$ResultsDirectory -Force
+    $Configuration.TestResult.Enabled = $True
+    $Configuration.TestResult.OutputFormat = 'JUnitXml'
+    $Configuration.TestResult.OutputPath = Join-Path -Path:$ResultsDirectory -ChildPath:('{0}.junit.xml' -f $PairName)
+  }
+  $PesterRun = Invoke-Pester -Configuration:$Configuration
+
+  If ($InGithubActions -and -not [System.String]::IsNullOrEmpty($env:GITHUB_STEP_SUMMARY)) {
+    Add-Content -LiteralPath:$env:GITHUB_STEP_SUMMARY -Value:(
+      ('### Pair: {0}' -f $PairName),
+      '',
+      '| Check | Result |',
+      '| --- | --- |',
+      '| Anatomy | canonical |',
+      '| Analyzer | zero findings |',
+      ('| Specs | {0} passed, {1} failed, {2} skipped ({3:N1}s) |' -f $PesterRun.PassedCount, $PesterRun.FailedCount, $PesterRun.SkippedCount, $PesterRun.Duration.TotalSeconds),
+      ''
+    )
+  }
+  If ($Null -eq $PesterRun -or $PesterRun.FailedCount -gt 0 -or $PesterRun.TotalCount -eq 0) {
+    Throw ('Spec run failed for {0}: {1} failed of {2} total.' -f $PairName, $PesterRun.FailedCount, $PesterRun.TotalCount)
+  }
 
   Write-Debug -Message:'[Invoke-PairLeg] Exiting'
 }
