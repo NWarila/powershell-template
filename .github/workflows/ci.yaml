@@ -87,6 +87,7 @@ jobs:
       contents: read
       checks: write          # report job: check run with per-test results
       pull-requests: write   # report job: sticky results comment on the PR
+      security-events: write # test legs: SARIF upload to code scanning
     uses: ./.github/workflows/pester-matrix.yaml
     with:
       scan-path: examples/pair

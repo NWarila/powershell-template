@@ -187,6 +187,7 @@ jobs:
       contents: read
       checks: write          # report job: check run with per-test results
       pull-requests: write   # report job: sticky results comment on the PR
+      security-events: write # test legs: SARIF upload to code scanning
     uses: NWarila/powershell-template/.github/workflows/pester-matrix.yaml@<pinned-sha>
     with:
       scan-path: scripts
@@ -207,6 +208,11 @@ all emitted by the harness only when `GITHUB_ACTIONS` is set (local runs write n
   the PR diff; anatomy violations become `::error` annotations. Both still fail the leg.
 - **Job summary**: each leg appends a markdown table (anatomy / analyzer / spec counts and
   duration) to `$GITHUB_STEP_SUMMARY`, readable on the run page without opening logs.
+- **Code scanning (SARIF)**: each leg hand-emits SARIF 2.1.0 (one code-scanning category
+  per pair via `automationDetails.id`) and uploads it with GitHub's first-party
+  `upload-sarif` action, `if: always()` — so a failing leg still publishes exactly what it
+  found as tracked alerts under Security > Code scanning. Free on public repositories;
+  requires the caller to grant `security-events: write`.
 - **Check run + sticky PR comment**: an aggregate `report` job feeds every leg's JUnit file
   to the SHA-pinned `EnricoMi/publish-unit-test-result-action`, producing a named check run
   and ONE edited-in-place PR comment with run-over-run deltas. Requires the caller to grant
