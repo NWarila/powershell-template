@@ -79,6 +79,20 @@ PSScriptAnalyzerSettings.psd1
 See [docs/reference/module-structure.md](docs/reference/module-structure.md) for
 the full reference and conventions.
 
+## The org script contract: pairs, stubs, and one matrix
+
+Beyond the module template, this repository defines how **standalone scripts** are developed
+everywhere in the organization: every script ships as `<Name>.ps1` plus a sibling
+`<Name>.pester.ps1` spec (plus a `<Name>.ps1.stub` build marker in consuming Ansible roles),
+and one reusable workflow — [pester-matrix.yaml](.github/workflows/pester-matrix.yaml) —
+discovers the pairs in a consuming repository and runs one matrix leg per script: house
+PSScriptAnalyzer settings, then the spec via
+[harness/Invoke-PairTests.ps1](harness/Invoke-PairTests.ps1). Pairs are self-contained —
+each spec carries its own stubs and inline `$Ansible` context, needing nothing beyond
+Pester itself. A worked, CI-exercised example lives in [examples/pair/](examples/pair/).
+
+Full contract: [docs/reference/pester-pair-testing.md](docs/reference/pester-pair-testing.md).
+
 ## CI
 
 The [CI workflow](.github/workflows/ci.yaml) runs on every push and pull request:
@@ -87,6 +101,7 @@ The [CI workflow](.github/workflows/ci.yaml) runs on every push and pull request
 | ---------------- | ------------------------------------------------------------ |
 | actionlint       | Lints GitHub Actions workflows                               |
 | PSScriptAnalyzer | `Invoke-ScriptAnalyzer -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse` |
+| Pair harness     | Self-test: the pester-matrix reusable workflow against `examples/pair` at this revision |
 | Pester           | Pester v5 suite, NUnit output, coverage target (≥ 80%)       |
 
 ## Documentation

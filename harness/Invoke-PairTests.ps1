@@ -1,0 +1,375 @@
+#Requires -Version 5.1
+<#
+    Invoke-PairTests: the execution half of the org's script pair convention.
+
+    Every org PowerShell script ships as two files: <Name>.ps1 (the script)
+    and <Name>.pester.ps1 (its spec). This runner enforces and executes that
+    contract two ways:
+
+      Scan mode   (-Path <dir>):   discover every pair under a directory,
+                                   fail on any unpaired script or orphan spec,
+                                   then run every pair.
+      Single mode (-Script/-Pester): run exactly one pair -- the shape one
+                                   matrix leg of the pester-matrix workflow
+                                   executes.
+
+    Per pair: the canonical-anatomy check (the full Script template shape,
+    hand-written), then PSScriptAnalyzer over the SCRIPT with the house
+    settings (zero findings at any severity), then the spec via Pester. Pairs
+    are fully self-contained -- a spec carries its own stubs and its own
+    inline $Ansible context, so this runner adds nothing to the session.
+    Specs are exercised by running rather than analyzed, because several
+    analyzer rules misread Pester's scoping model.
+
+    Requires: PSScriptAnalyzer and Pester v5+.
+#>
+[CmdletBinding(
+  ConfirmImpact = 'None',
+  DefaultParameterSetName = 'scan',
+  HelpUri = '',
+  PositionalBinding = $False,
+  SupportsPaging = $False,
+  SupportsShouldProcess = $False
+)]
+Param (
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $True,
+    ParameterSetName = 'scan',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
+  [ValidateNotNullOrEmpty()]
+  [System.String]
+  $Path,
+
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $True,
+    ParameterSetName = 'single',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
+  [ValidateNotNullOrEmpty()]
+  [System.String]
+  $Pester,
+
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $True,
+    ParameterSetName = 'single',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
+  [ValidateNotNullOrEmpty()]
+  [System.String]
+  $Script
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+Function Get-PairSet {
+  <#
+    .SYNOPSIS
+        Discovers script/spec pairs under a directory, failing on orphans.
+
+    .DESCRIPTION
+        Enumerates every *.ps1 under the scan root. Each plain script must
+        have a sibling <Name>.pester.ps1 and each spec must have a sibling
+        <Name>.ps1; either orphan fails discovery, because an untested script
+        and a spec testing nothing are both contract violations.
+
+    .PARAMETER ScanRoot
+        Directory to scan recursively.
+
+    .OUTPUTS
+        System.Object[]
+    #>
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = '',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Object[]])]
+  Param (
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $ScanRoot
+  )
+  Write-Debug -Message:'[Get-PairSet] Entering'
+
+  # Initialize Variable(s)
+  [System.IO.FileInfo[]]$Private:AllFiles = @()
+  [System.Collections.Generic.List[System.String]]$Private:Orphans = [System.Collections.Generic.List[System.String]]::new()
+  [System.Collections.Generic.List[System.Object]]$Private:Pairs = [System.Collections.Generic.List[System.Object]]::new()
+  [System.String]$Private:Sibling = [System.String]::Empty
+  [System.Object[]]$Private:Result = @()
+
+  $AllFiles = @(Get-ChildItem -LiteralPath:$ScanRoot -Filter:'*.ps1' -File -Recurse -ErrorAction:'Stop')
+
+  ForEach ($File In $AllFiles) {
+    If ($File.Name -like '*.pester.ps1') {
+      $Sibling = Join-Path -Path:$File.DirectoryName -ChildPath:($File.Name -replace '\.pester\.ps1$', '.ps1')
+      If (-not (Test-Path -LiteralPath:$Sibling -PathType:'Leaf')) {
+        [void]$Orphans.Add(('{0} has no sibling script {1}' -f $File.FullName, $Sibling))
+      }
+    } Else {
+      $Sibling = Join-Path -Path:$File.DirectoryName -ChildPath:($File.Name -replace '\.ps1$', '.pester.ps1')
+      If (Test-Path -LiteralPath:$Sibling -PathType:'Leaf') {
+        [void]$Pairs.Add([PSCustomObject]@{
+            Name   = $File.BaseName
+            Pester = $Sibling
+            Script = $File.FullName
+          })
+      } Else {
+        [void]$Orphans.Add(('{0} has no sibling spec {1}' -f $File.FullName, $Sibling))
+      }
+    }
+  }
+
+  If ($Orphans.Count -gt 0) {
+    Throw ('Pair convention violated: {0}' -f ($Orphans -join '; '))
+  }
+  If ($Pairs.Count -eq 0) {
+    Throw ('No script pairs found under {0}; an empty scan passing would hide a broken path.' -f $ScanRoot)
+  }
+
+  [System.Object[]]$Result = $Pairs.ToArray()
+  $Result
+
+  Write-Debug -Message:'[Get-PairSet] Exiting'
+}
+
+Function Test-PairAnatomy {
+  <#
+    .SYNOPSIS
+        Enforces the canonical single-file anatomy of the full Script template.
+
+    .DESCRIPTION
+        Org scripts fill steps Ansible cannot do effectively, so each one is a
+        single straightforward process stage in the org script template's
+        region architecture, with no function decomposition. Mechanically
+        checked here: the #Requires first line, the SPDX header pair, and the
+        ordered banner regions [ Script ], [ Initialization ], [ Main ],
+        [ Output ]. The sibling spec must open with the same #Requires + SPDX
+        header.
+
+    .PARAMETER PesterPath
+        The spec file to check.
+
+    .PARAMETER ScriptPath
+        The script file to check.
+
+    .OUTPUTS
+        System.Void
+    #>
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = '',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Void])]
+  Param (
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $PesterPath,
+
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $ScriptPath
+  )
+  Write-Debug -Message:'[Test-PairAnatomy] Entering'
+
+  # Initialize Variable(s)
+  [System.String[]]$Private:ScriptLines = @()
+  [System.Collections.Generic.List[System.String]]$Private:Violations = [System.Collections.Generic.List[System.String]]::new()
+  [System.Int32]$Private:LastMarkerIndex = -1
+  [System.Int32]$Private:MarkerIndex = -1
+
+  ForEach ($Target In @($ScriptPath, $PesterPath)) {
+    $ScriptLines = [System.String[]]@(Get-Content -LiteralPath:$Target)
+    If ($ScriptLines.Count -lt 3 -or $ScriptLines[0] -ne '#Requires -Version 5.1') {
+      [void]$Violations.Add(('{0}: line 1 must be exactly ''#Requires -Version 5.1''' -f $Target))
+    }
+    If ($ScriptLines.Count -ge 3 -and ($ScriptLines[1] -notmatch '^# SPDX-FileCopyrightText: ' -or $ScriptLines[2] -notmatch '^# SPDX-License-Identifier: ')) {
+      [void]$Violations.Add(('{0}: lines 2-3 must be the SPDX FileCopyrightText / License-Identifier pair' -f $Target))
+    }
+  }
+
+  $ScriptLines = [System.String[]]@(Get-Content -LiteralPath:$ScriptPath)
+  $LastMarkerIndex = -1
+  ForEach ($MarkerName In @('Script', 'Initialization', 'Main', 'Output')) {
+    $MarkerIndex = -1
+    For ($LineIndex = 0; $LineIndex -lt $ScriptLines.Count; $LineIndex++) {
+      If ($ScriptLines[$LineIndex] -match ('^#region [-]+ \[ {0} \] [-]+ #$' -f [System.Text.RegularExpressions.Regex]::Escape($MarkerName))) {
+        $MarkerIndex = $LineIndex
+        Break
+      }
+    }
+    If ($MarkerIndex -lt 0) {
+      [void]$Violations.Add(('{0}: missing required banner region ''[ {1} ]''' -f $ScriptPath, $MarkerName))
+    } ElseIf ($MarkerIndex -lt $LastMarkerIndex) {
+      [void]$Violations.Add(('{0}: banner region ''[ {1} ]'' is out of canonical order' -f $ScriptPath, $MarkerName))
+    } Else {
+      $LastMarkerIndex = $MarkerIndex
+    }
+  }
+  # Single process stage: function definitions signal the tool has outgrown a
+  # gap-filler script and wants the Script template's src/ layout instead.
+  If (@($ScriptLines | Where-Object -FilterScript { $PSItem -match '^\s*Function\s+[A-Za-z]' }).Count -gt 0) {
+    [void]$Violations.Add(('{0}: scripts are a single process stage; move function-shaped logic to a Script-template repo or inline it' -f $ScriptPath))
+  }
+
+  # Full-template machinery: the DebugLevel/LogLevel control parameters and
+  # the universal trap are part of every script's Initialization stage.
+  ForEach ($RequiredFragment In @('$DebugLevel', '$LogLevel', 'Trap {')) {
+    If (@($ScriptLines | Where-Object -FilterScript { $PSItem.Contains($RequiredFragment) }).Count -eq 0) {
+      [void]$Violations.Add(('{0}: missing the script template''s ''{1}'' machinery' -f $ScriptPath, $RequiredFragment))
+    }
+  }
+
+  If ($Violations.Count -gt 0) {
+    Throw ('Canonical anatomy violated (see docs/reference/pester-pair-testing.md): {0}' -f ($Violations -join '; '))
+  }
+  Write-Information -MessageData:'Anatomy: canonical.' -InformationAction:'Continue'
+
+  Write-Debug -Message:'[Test-PairAnatomy] Exiting'
+}
+
+Function Invoke-PairLeg {
+  <#
+    .SYNOPSIS
+        Analyzes one script and runs its spec.
+
+    .DESCRIPTION
+        The unit of work one matrix leg performs: PSScriptAnalyzer over the
+        script with the house settings (zero findings at any severity is the
+        bar), then the sibling spec via Pester with Run.Throw so a failing
+        test fails the leg.
+
+    .PARAMETER PesterPath
+        The spec file to run.
+
+    .PARAMETER ScriptPath
+        The script file to analyze.
+
+    .OUTPUTS
+        System.Void
+    #>
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = '',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Void])]
+  Param (
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $PesterPath,
+
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $ScriptPath
+  )
+  Write-Debug -Message:'[Invoke-PairLeg] Entering'
+
+  # Initialize Variable(s)
+  [System.Object[]]$Private:Findings = @()
+  [System.String]$Private:FindingText = [System.String]::Empty
+  [System.Object]$Private:Configuration = $Null
+
+  Write-Information -MessageData:('=== Pair: {0} ===' -f $ScriptPath) -InformationAction:'Continue'
+
+  Test-PairAnatomy -PesterPath:$PesterPath -ScriptPath:$ScriptPath
+
+  # The settings file names a CustomRulePath relative to the template root, so
+  # analysis runs from there regardless of the caller's working directory.
+  Push-Location -LiteralPath:$script:TemplateRoot
+  Try {
+    $Findings = @(Invoke-ScriptAnalyzer -Path:$ScriptPath -Settings:$script:SettingsPath)
+  } Finally {
+    Pop-Location
+  }
+  If ($Findings.Count -gt 0) {
+    $FindingText = $Findings |
+      Format-Table -Property:@('RuleName', 'Severity', 'Line', 'Message') -AutoSize |
+      Out-String -Width:220
+    Write-Information -MessageData:$FindingText -InformationAction:'Continue'
+    Throw ('{0} analyzer finding(s) for {1}; zero is the bar.' -f $Findings.Count, $ScriptPath)
+  }
+  Write-Information -MessageData:'Analyzer: zero findings.' -InformationAction:'Continue'
+
+  $Configuration = New-PesterConfiguration
+  $Configuration.Run.Path = $PesterPath
+  $Configuration.Run.Throw = $True
+  $Configuration.Output.Verbosity = 'Detailed'
+  Invoke-Pester -Configuration:$Configuration
+
+  Write-Debug -Message:'[Invoke-PairLeg] Exiting'
+}
+
+# Initialize Variable(s)
+[System.String]$script:TemplateRoot = (Resolve-Path -LiteralPath:(Join-Path -Path:$PSScriptRoot -ChildPath:'..')).Path
+[System.String]$script:SettingsPath = Join-Path -Path:$TemplateRoot -ChildPath:'PSScriptAnalyzerSettings.psd1'
+[System.Object[]]$Private:PairSet = @()
+
+ForEach ($ModuleName In @('PSScriptAnalyzer', 'Pester')) {
+  If ($Null -eq (Get-Module -ListAvailable -Name:$ModuleName)) {
+    Throw ('Required module {0} is not installed; install it and re-run.' -f $ModuleName)
+  }
+}
+
+If ($PSCmdlet.ParameterSetName -eq 'single') {
+  Invoke-PairLeg -PesterPath:$Pester -ScriptPath:$Script
+} Else {
+  $PairSet = Get-PairSet -ScanRoot:$Path
+  Write-Information -MessageData:('Discovered {0} pair(s) under {1}.' -f $PairSet.Count, $Path) -InformationAction:'Continue'
+  ForEach ($Pair In $PairSet) {
+    Invoke-PairLeg -PesterPath:$Pair.Pester -ScriptPath:$Pair.Script
+  }
+}
