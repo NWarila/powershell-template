@@ -333,8 +333,10 @@ Function Invoke-PairLeg {
   [System.String]$Private:AnnotationPath = [System.String]::Empty
   [System.String]$Private:ResultsDirectory = [System.String]::Empty
   [System.Collections.Hashtable]$Private:SarifLevelBySeverity = @{}
+  [System.Object[]]$Private:SarifArtifacts = @()
   [System.Object[]]$Private:SarifResults = @()
   [System.Object[]]$Private:SarifRules = @()
+  [System.String]$Private:AnalyzerVersion = [System.String]::Empty
   [System.Collections.Hashtable]$Private:SarifDocument = @{}
   [System.String]$Private:ResolvedPester = [System.String]::Empty
   [System.String]$Private:ResolvedScript = [System.String]::Empty
@@ -401,13 +403,20 @@ Function Invoke-PairLeg {
     $SarifRules = @(
       $Findings | ForEach-Object -Process { [System.String]$PSItem.RuleName } | Sort-Object -Unique | ForEach-Object -Process { @{ id = $PSItem } }
     )
+    # The artifacts array is what code scanning reports as the analysis's
+    # scanned files; without it a zero-result run says nothing about coverage.
+    $SarifArtifacts = @(
+      @{ location = @{ uri = $AnnotationPath.Replace('\', '/') } }
+    )
+    $AnalyzerVersion = [System.String](Get-Module -ListAvailable -Name:'PSScriptAnalyzer' | Sort-Object -Property:'Version' -Descending | Select-Object -First:1).Version
     $SarifDocument = @{
       version   = '2.1.0'
       '$schema' = 'https://json.schemastore.org/sarif-2.1.0.json'
       runs      = @(
         @{
-          tool              = @{ driver = @{ name = 'PSScriptAnalyzer'; informationUri = 'https://github.com/NWarila/powershell-template'; rules = $SarifRules } }
+          tool              = @{ driver = @{ name = 'PSScriptAnalyzer'; version = $AnalyzerVersion; informationUri = 'https://github.com/NWarila/powershell-template'; rules = $SarifRules } }
           automationDetails = @{ id = ('pester-matrix-{0}/' -f $PairName) }
+          artifacts         = $SarifArtifacts
           results           = $SarifResults
         }
       )
