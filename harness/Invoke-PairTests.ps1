@@ -322,16 +322,24 @@ Function Invoke-PairLeg {
   [System.Object[]]$Private:Findings = @()
   [System.String]$Private:FindingText = [System.String]::Empty
   [System.Object]$Private:Configuration = $Null
+  [System.String]$Private:ResolvedPester = [System.String]::Empty
+  [System.String]$Private:ResolvedScript = [System.String]::Empty
 
-  Write-Information -MessageData:('=== Pair: {0} ===' -f $ScriptPath) -InformationAction:'Continue'
+  # Resolve to absolute paths BEFORE any location change: analysis runs from
+  # the template root (CustomRulePath is relative to it), and a relative
+  # caller path must not silently re-resolve against that root.
+  $ResolvedPester = (Resolve-Path -LiteralPath:$PesterPath).Path
+  $ResolvedScript = (Resolve-Path -LiteralPath:$ScriptPath).Path
 
-  Test-PairAnatomy -PesterPath:$PesterPath -ScriptPath:$ScriptPath
+  Write-Information -MessageData:('=== Pair: {0} ===' -f $ResolvedScript) -InformationAction:'Continue'
+
+  Test-PairAnatomy -PesterPath:$ResolvedPester -ScriptPath:$ResolvedScript
 
   # The settings file names a CustomRulePath relative to the template root, so
   # analysis runs from there regardless of the caller's working directory.
   Push-Location -LiteralPath:$script:TemplateRoot
   Try {
-    $Findings = @(Invoke-ScriptAnalyzer -Path:$ScriptPath -Settings:$script:SettingsPath)
+    $Findings = @(Invoke-ScriptAnalyzer -Path:$ResolvedScript -Settings:$script:SettingsPath)
   } Finally {
     Pop-Location
   }
@@ -340,12 +348,12 @@ Function Invoke-PairLeg {
       Format-Table -Property:@('RuleName', 'Severity', 'Line', 'Message') -AutoSize |
       Out-String -Width:220
     Write-Information -MessageData:$FindingText -InformationAction:'Continue'
-    Throw ('{0} analyzer finding(s) for {1}; zero is the bar.' -f $Findings.Count, $ScriptPath)
+    Throw ('{0} analyzer finding(s) for {1}; zero is the bar.' -f $Findings.Count, $ResolvedScript)
   }
   Write-Information -MessageData:'Analyzer: zero findings.' -InformationAction:'Continue'
 
   $Configuration = New-PesterConfiguration
-  $Configuration.Run.Path = $PesterPath
+  $Configuration.Run.Path = $ResolvedPester
   $Configuration.Run.Throw = $True
   $Configuration.Output.Verbosity = 'Detailed'
   Invoke-Pester -Configuration:$Configuration
