@@ -332,6 +332,10 @@ Function Invoke-PairLeg {
   [System.String]$Private:PairName = [System.String]::Empty
   [System.String]$Private:AnnotationPath = [System.String]::Empty
   [System.String]$Private:ResultsDirectory = [System.String]::Empty
+  [System.Collections.Hashtable]$Private:SarifLevelBySeverity = @{}
+  [System.Object[]]$Private:SarifResults = @()
+  [System.Object[]]$Private:SarifRules = @()
+  [System.Collections.Hashtable]$Private:SarifDocument = @{}
   [System.String]$Private:ResolvedPester = [System.String]::Empty
   [System.String]$Private:ResolvedScript = [System.String]::Empty
 
@@ -346,6 +350,13 @@ Function Invoke-PairLeg {
     # Annotations attach to the PR diff only with workspace-relative paths.
     $AnnotationPath = [System.IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $ResolvedScript)
   }
+  If ($InGithubActions) {
+    $ResultsDirectory = $env:PAIR_RESULTS_DIR
+    If ([System.String]::IsNullOrEmpty($ResultsDirectory)) {
+      $ResultsDirectory = Join-Path -Path:(Get-Location).Path -ChildPath:'TestResults'
+    }
+    $Null = New-Item -ItemType:'Directory' -Path:$ResultsDirectory -Force
+  }
 
   Write-Information -MessageData:('=== Pair: {0} ===' -f $ResolvedScript) -InformationAction:'Continue'
 
@@ -359,6 +370,47 @@ Function Invoke-PairLeg {
   } Finally {
     Pop-Location
   }
+  If ($InGithubActions) {
+    # SARIF 2.1.0 for GitHub code scanning, hand-emitted (the PSSA converter
+    # module is archived). Written BEFORE the zero-findings gate so a failing
+    # leg still publishes exactly what it found; a zero-result run registers
+    # the tool against the ref. automationDetails.id keeps one code-scanning
+    # category per pair.
+    $SarifLevelBySeverity = @{ 'Error' = 'error'; 'ParseError' = 'error'; 'Warning' = 'warning'; 'Information' = 'note' }
+    $SarifResults = @(
+      ForEach ($Finding In $Findings) {
+        @{
+          ruleId    = [System.String]$Finding.RuleName
+          level     = [System.String]$(If ($SarifLevelBySeverity.ContainsKey([System.String]$Finding.Severity)) { $SarifLevelBySeverity[[System.String]$Finding.Severity] } Else { 'note' })
+          message   = @{ text = [System.String]$Finding.Message }
+          locations = @(
+            @{
+              physicalLocation = @{
+                artifactLocation = @{ uri = $AnnotationPath.Replace('\', '/') }
+                region           = @{ startLine = [System.Math]::Max(1, [System.Int32]$Finding.Line) }
+              }
+            }
+          )
+        }
+      }
+    )
+    $SarifRules = @(
+      $Findings | ForEach-Object -Process { [System.String]$PSItem.RuleName } | Sort-Object -Unique | ForEach-Object -Process { @{ id = $PSItem } }
+    )
+    $SarifDocument = @{
+      version   = '2.1.0'
+      '$schema' = 'https://json.schemastore.org/sarif-2.1.0.json'
+      runs      = @(
+        @{
+          tool              = @{ driver = @{ name = 'PSScriptAnalyzer'; informationUri = 'https://github.com/NWarila/powershell-template'; rules = $SarifRules } }
+          automationDetails = @{ id = ('pester-matrix/{0}' -f $PairName) }
+          results           = $SarifResults
+        }
+      )
+    }
+    Set-Content -LiteralPath:(Join-Path -Path:$ResultsDirectory -ChildPath:('{0}.sarif' -f $PairName)) -Value:(ConvertTo-Json -InputObject:$SarifDocument -Depth:12)
+  }
+
   If ($Findings.Count -gt 0) {
     If ($InGithubActions) {
       ForEach ($Finding In $Findings) {
@@ -380,11 +432,6 @@ Function Invoke-PairLeg {
   If ($InGithubActions) {
     # JUnit XML is the interchange format GitHub tooling consumes; the matrix
     # uploads the whole directory as a per-leg artifact.
-    $ResultsDirectory = $env:PAIR_RESULTS_DIR
-    If ([System.String]::IsNullOrEmpty($ResultsDirectory)) {
-      $ResultsDirectory = Join-Path -Path:(Get-Location).Path -ChildPath:'TestResults'
-    }
-    $Null = New-Item -ItemType:'Directory' -Path:$ResultsDirectory -Force
     $Configuration.TestResult.Enabled = $True
     $Configuration.TestResult.OutputFormat = 'JUnitXml'
     $Configuration.TestResult.OutputPath = Join-Path -Path:$ResultsDirectory -ChildPath:('{0}.junit.xml' -f $PairName)
