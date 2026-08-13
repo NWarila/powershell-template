@@ -25,6 +25,15 @@
 !/analyzers/
 !/analyzers/*.psm1
 
+# Pair-testing harness (org script contract — docs/reference/pester-pair-testing.md)
+!/harness/
+!/harness/*.ps1
+
+# Worked examples (exercised by the pair-harness CI self-test)
+!/examples/
+!/examples/**/
+!/examples/**/*.ps1
+
 # Module source
 !/src/
 !/src/**/

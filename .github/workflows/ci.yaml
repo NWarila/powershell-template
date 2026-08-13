@@ -81,6 +81,17 @@ jobs:
         shell: pwsh
         run: ./build.ps1 -Task Analyze
 
+  pair-harness:
+    name: Pair harness self-test
+    permissions:
+      contents: read
+      checks: write          # report job: check run with per-test results
+      pull-requests: write   # report job: sticky results comment on the PR
+    uses: ./.github/workflows/pester-matrix.yaml
+    with:
+      scan-path: examples/pair
+      template-ref: ${{ github.sha }}
+
   test:
     name: Pester
     runs-on: ubuntu-latest

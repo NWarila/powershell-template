@@ -1,0 +1,166 @@
+name: Pester Matrix
+
+# Reusable workflow: the single test matrix for every org PowerShell script.
+#
+# Consumers call this with `uses:` and a scan path. The discover job finds
+# every <Name>.ps1 + <Name>.pester.ps1 pair under that path — failing on any
+# unpaired script or orphan spec — and the test job fans out ONE MATRIX LEG
+# PER SCRIPT: PSScriptAnalyzer with the house settings (zero findings), then
+# the self-contained spec via Pester, both executed by
+# harness/Invoke-PairTests.ps1 from this repository at the pinned ref.
+#
+# Caller shape:
+#
+#   jobs:
+#     powershell:
+#       uses: NWarila/powershell-template/.github/workflows/pester-matrix.yml@<sha>
+#       with:
+#         scan-path: powershell
+#
+# See docs/reference/pester-pair-testing.md for the full convention.
+
+on:
+  workflow_call:
+    inputs:
+      scan-path:
+        description: 'Repo-relative directory scanned recursively for script pairs.'
+        required: true
+        type: string
+      template-ref:
+        description: 'Ref of NWarila/powershell-template supplying the harness and house analyzer settings.'
+        required: false
+        type: string
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    name: Discover script pairs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.pairs.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Build the pair matrix
+        id: pairs
+        shell: bash
+        env:
+          SCAN_PATH: ${{ inputs.scan-path }}
+        run: |
+          set -euo pipefail
+          if [ ! -d "${SCAN_PATH}" ]; then
+            echo "::error::scan-path '${SCAN_PATH}' is not a directory in this repository."
+            exit 1
+          fi
+
+          orphans=()
+          pairs='[]'
+          while IFS= read -r -d '' file; do
+            case "${file}" in
+              *.pester.ps1)
+                script="${file%.pester.ps1}.ps1"
+                if [ ! -f "${script}" ]; then
+                  orphans+=("${file} has no sibling script ${script}")
+                fi
+                ;;
+              *.ps1)
+                pester="${file%.ps1}.pester.ps1"
+                if [ -f "${pester}" ]; then
+                  name="${file#"${SCAN_PATH}"/}"
+                  name="${name%.ps1}"
+                  artifact="$(printf '%s' "${name}" | tr '/\\:"<>|*? ' '-')"
+                  pairs="$(jq -c --arg name "${name}" --arg artifact "${artifact}" --arg script "${file}" --arg pester "${pester}" \
+                    '. + [{name: $name, artifact: $artifact, script: $script, pester: $pester}]' <<<"${pairs}")"
+                else
+                  orphans+=("${file} has no sibling spec ${pester}")
+                fi
+                ;;
+            esac
+          done < <(find "${SCAN_PATH}" -type f -name '*.ps1' -print0 | sort -z)
+
+          if [ "${#orphans[@]}" -gt 0 ]; then
+            printf '::error::Pair convention violated: %s\n' "${orphans[@]}"
+            exit 1
+          fi
+          if [ "$(jq 'length' <<<"${pairs}")" -eq 0 ]; then
+            echo "::error::No script pairs found under '${SCAN_PATH}'; an empty matrix passing would hide a broken path."
+            exit 1
+          fi
+
+          echo "Discovered $(jq 'length' <<<"${pairs}") pair(s):"
+          jq -r '.[].name' <<<"${pairs}"
+          echo "matrix=${pairs}" >>"${GITHUB_OUTPUT}"
+
+  test:
+    name: ${{ matrix.pair.name }}
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pair: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Check out the powershell-template harness
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: NWarila/powershell-template
+          ref: ${{ inputs.template-ref }}
+          path: .powershell-template
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install test modules
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop
+          Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force -ErrorAction Stop
+      - name: Run the pair leg
+        shell: pwsh
+        env:
+          PAIR_SCRIPT: ${{ matrix.pair.script }}
+          PAIR_PESTER: ${{ matrix.pair.pester }}
+          PAIR_RESULTS_DIR: ${{ runner.temp }}/pair-results
+        run: |
+          ./.powershell-template/harness/Invoke-PairTests.ps1 `
+            -Script $env:PAIR_SCRIPT `
+            -Pester $env:PAIR_PESTER
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-results-${{ matrix.pair.artifact }}
+          path: ${{ runner.temp }}/pair-results/
+          if-no-files-found: ignore
+
+  report:
+    name: Publish test results
+    needs: [discover, test]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - name: Download per-leg results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: pester-results-*
+          path: pair-results
+      - name: Publish check run and sticky PR comment
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        with:
+          files: pair-results/**/*.xml
+          check_name: PowerShell pair results
+          comment_title: PowerShell pair results
