@@ -374,10 +374,12 @@ Function Invoke-PairLeg {
     # SARIF 2.1.0 for GitHub code scanning, hand-emitted (the PSSA converter
     # module is archived). Written BEFORE the zero-findings gate so a failing
     # leg still publishes exactly what it found; a zero-result run registers
-    # the tool against the ref. automationDetails.id is the code-scanning
-    # category and takes precedence over the upload action's category input;
-    # it must be slashless and per-pair, because GitHub truncates a slash-form
-    # id to its prefix and colliding categories last-writer-win.
+    # the tool against the ref. automationDetails.id takes precedence over the
+    # upload action's category input, and GitHub parses it as
+    # '<category>/<run-correlation>' -- the category is everything before the
+    # LAST slash (verified live: 'a/b' -> 'a', slashless -> empty). The
+    # trailing-slash form makes the whole per-pair string the category, so
+    # pairs never last-writer-win each other's analyses.
     $SarifLevelBySeverity = @{ 'Error' = 'error'; 'ParseError' = 'error'; 'Warning' = 'warning'; 'Information' = 'note' }
     $SarifResults = @(
       ForEach ($Finding In $Findings) {
@@ -405,7 +407,7 @@ Function Invoke-PairLeg {
       runs      = @(
         @{
           tool              = @{ driver = @{ name = 'PSScriptAnalyzer'; informationUri = 'https://github.com/NWarila/powershell-template'; rules = $SarifRules } }
-          automationDetails = @{ id = ('pester-matrix-{0}' -f $PairName) }
+          automationDetails = @{ id = ('pester-matrix-{0}/' -f $PairName) }
           results           = $SarifResults
         }
       )
