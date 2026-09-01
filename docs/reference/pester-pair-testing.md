@@ -30,14 +30,18 @@ Scripts consumed by Ansible run through `ansible.windows.win_powershell` — nev
 blocks — and follow the worked example
 [`examples/pair/Set-TextFileContent.ps1`](../../examples/pair/Set-TextFileContent.ps1):
 
-1. **The canonical script anatomy: a single process stage in the script template's region
-   architecture.** These scripts exist to fill steps Ansible cannot do effectively — they
-   are gap-fillers, not applications, and each one reads like the task it replaces: one
-   linear pass someone can audit top to bottom. **No function decomposition** — a script
-   that wants functions has outgrown a gap-filler and belongs in a Script-template
-   repository with the `src/` layout and build. Reused logic shrinks to inline idioms
-   instead (e.g. normalized comparison is stringify + trim + PowerShell's default
-   case-insensitive `-ne`).
+1. **The canonical script anatomy: the script template's region architecture.** These
+   scripts exist to fill steps Ansible cannot do effectively — they are gap-fillers, not
+   applications, and each one should read like the task it replaces: a pass someone can
+   audit top to bottom. A script that has grown into an application still belongs in a
+   Script-template repository with the `src/` layout and build.
+
+   A helper function is allowed where it earns its place — a named idiom used several
+   times reads better than the same expression repeated, and inlining it makes the linear
+   pass harder to audit, not easier. What is discouraged is decomposition for its own
+   sake: a chain of one-call helpers that scatters a short script across the file. That is
+   a judgement made in review, because the distinction is not one a line-regex can draw;
+   the harness enforces the mechanical anatomy below and leaves this to a reader.
 
    The architecture comes from the original org script template: one bannered `[ Script ]`
    region carrying the ordered stages, `Write-Debug 'Entering Stage: …'` anchors, and all
