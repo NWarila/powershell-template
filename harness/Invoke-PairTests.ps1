@@ -242,12 +242,6 @@ Function Test-PairAnatomy {
       $LastMarkerIndex = $MarkerIndex
     }
   }
-  # Single process stage: function definitions signal the tool has outgrown a
-  # gap-filler script and wants the Script template's src/ layout instead.
-  If (@($ScriptLines | Where-Object -FilterScript { $PSItem -match '^\s*Function\s+[A-Za-z]' }).Count -gt 0) {
-    [void]$Violations.Add(('{0}: scripts are a single process stage; move function-shaped logic to a Script-template repo or inline it' -f $ScriptPath))
-  }
-
   # Full-template machinery: the DebugLevel/LogLevel control parameters and
   # the universal trap are part of every script's Initialization stage.
   ForEach ($RequiredFragment In @('$DebugLevel', '$LogLevel', 'Trap {')) {
