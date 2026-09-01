@@ -76,18 +76,40 @@ Function Get-HouseRuleFunctionAst {
     $ScriptBlockAst
   )
 
-  [System.Management.Automation.Language.FunctionDefinitionAst[]]@(
-    $ScriptBlockAst.FindAll(
-      {
-        Param (
-          [System.Management.Automation.Language.Ast]
-          $Ast
-        )
+  # The function rules describe a PUBLISHED function: discoverable help, a declared
+  # output type, an explicit parameter surface, a stable ordering someone calls against.
+  # A helper defined inside a script has none of those obligations -- it is called by the
+  # twenty lines beneath it and by nothing else, ever -- so holding it to the contract of
+  # an exported cmdlet buys ceremony rather than predictability.
+  #
+  # A .psm1 is always a module. A .ps1 is a module FILE when it contains nothing but
+  # function definitions, which is the src/ layout's one-function-per-file shape; a .ps1
+  # that also carries top-level statements is a script, and its functions are local.
+  [System.String]$Private:SourceFile = [System.String]$ScriptBlockAst.Extent.File
+  [System.Boolean]$Private:PublishesFunctions = $True
+  If (-not ($SourceFile.EndsWith('.psm1', [System.StringComparison]::OrdinalIgnoreCase))) {
+    ForEach ($Private:Statement In @($ScriptBlockAst.EndBlock.Statements)) {
+      If (-not ($Statement -is [System.Management.Automation.Language.FunctionDefinitionAst])) {
+        $PublishesFunctions = $False
+        Break
+      }
+    }
+  }
 
-        $Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]
-      },
-      $True
-    )
+  [System.Management.Automation.Language.FunctionDefinitionAst[]]@(
+    If ($PublishesFunctions) {
+      $ScriptBlockAst.FindAll(
+        {
+          Param (
+            [System.Management.Automation.Language.Ast]
+            $Ast
+          )
+
+          $Ast -is [System.Management.Automation.Language.FunctionDefinitionAst]
+        },
+        $True
+      )
+    }
   )
 
 }
